@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     listing_max_image_size_bytes: int = 10 * 1024 * 1024
     listing_max_video_size_bytes: int = 200 * 1024 * 1024
 
+    billing_proof_upload_dir: str = "storage/billing-proofs"
+    billing_allowed_image_types: str = "image/jpeg,image/png"
+    billing_max_image_size_bytes: int = 10 * 1024 * 1024
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @computed_field
@@ -48,6 +52,11 @@ class Settings(BaseSettings):
     @property
     def allowed_video_types(self) -> set[str]:
         return {value.strip() for value in self.listing_allowed_video_types.split(",") if value.strip()}
+
+    @computed_field
+    @property
+    def billing_allowed_proof_types(self) -> set[str]:
+        return {value.strip() for value in self.billing_allowed_image_types.split(",") if value.strip()}
 
 
 settings = Settings()

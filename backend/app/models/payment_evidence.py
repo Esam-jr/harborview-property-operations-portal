@@ -20,9 +20,9 @@ class PaymentEvidence(Base, TimestampMixin):
         nullable=False,
         default=EvidenceType.payment,
     )
-    payment_method: Mapped[PaymentMethod] = mapped_column(
+    payment_method: Mapped[PaymentMethod | None] = mapped_column(
         Enum(PaymentMethod, name="payment_method"),
-        nullable=False,
+        nullable=True,
     )
     reference_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)

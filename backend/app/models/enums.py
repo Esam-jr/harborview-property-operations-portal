@@ -41,3 +41,8 @@ class PaymentMethod(str, Enum):
 class EvidenceType(str, Enum):
     payment = "payment"
     refund_request = "refund_request"
+
+
+class StatementFormat(str, Enum):
+    json = "json"
+    pdf = "pdf"
