@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
+    listing_upload_dir: str = "storage/listings"
+    listing_allowed_image_types: str = "image/jpeg,image/png"
+    listing_allowed_video_types: str = "video/mp4"
+    listing_max_image_size_bytes: int = 10 * 1024 * 1024
+    listing_max_video_size_bytes: int = 200 * 1024 * 1024
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @computed_field
@@ -32,6 +38,16 @@ class Settings(BaseSettings):
     @property
     def access_token_expire_delta(self) -> timedelta:
         return timedelta(minutes=self.jwt_access_token_expire_minutes)
+
+    @computed_field
+    @property
+    def allowed_image_types(self) -> set[str]:
+        return {value.strip() for value in self.listing_allowed_image_types.split(",") if value.strip()}
+
+    @computed_field
+    @property
+    def allowed_video_types(self) -> set[str]:
+        return {value.strip() for value in self.listing_allowed_video_types.split(",") if value.strip()}
 
 
 settings = Settings()

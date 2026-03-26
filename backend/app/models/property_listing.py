@@ -23,6 +23,11 @@ class PropertyListing(Base, TimestampMixin):
     )
 
     owner: Mapped["User"] = relationship(back_populates="property_listings")
+    media_items: Mapped[list["PropertyListingMedia"]] = relationship(
+        back_populates="listing",
+        cascade="all, delete-orphan",
+    )
 
 
+from app.models.property_listing_media import PropertyListingMedia  # noqa: E402,F401
 from app.models.user import User  # noqa: E402,F401

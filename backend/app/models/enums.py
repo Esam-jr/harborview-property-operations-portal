@@ -15,6 +15,11 @@ class ListingStatus(str, Enum):
     unpublished = "unpublished"
 
 
+class ListingMediaType(str, Enum):
+    image = "image"
+    video = "video"
+
+
 class ServiceOrderStatus(str, Enum):
     submitted = "submitted"
     assigned = "assigned"

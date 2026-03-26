@@ -10,6 +10,7 @@ from app.models import (  # noqa: E402,F401
     BillingRecord,
     PaymentEvidence,
     PropertyListing,
+    PropertyListingMedia,
     ServiceOrder,
     User,
 )
