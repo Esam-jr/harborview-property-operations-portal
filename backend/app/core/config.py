@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
     listing_upload_dir: str = "storage/listings"
     listing_allowed_image_types: str = "image/jpeg,image/png"
     listing_allowed_video_types: str = "video/mp4"
@@ -57,6 +59,11 @@ class Settings(BaseSettings):
     @property
     def billing_allowed_proof_types(self) -> set[str]:
         return {value.strip() for value in self.billing_allowed_image_types.split(",") if value.strip()}
+
+    @computed_field
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 settings = Settings()
