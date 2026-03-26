@@ -1,0 +1,37 @@
+﻿from datetime import timedelta
+
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "HarborView Property Operations Portal"
+    app_environment: str = "development"
+
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "harborview"
+    db_user: str = "harborview"
+    db_password: str = "harborview"
+
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @computed_field
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
+
+    @computed_field
+    @property
+    def access_token_expire_delta(self) -> timedelta:
+        return timedelta(minutes=self.jwt_access_token_expire_minutes)
+
+
+settings = Settings()
