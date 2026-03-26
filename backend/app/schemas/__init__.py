@@ -16,6 +16,13 @@ from app.schemas.listing import (
     ListingRead,
     ListingUpdate,
 )
+from app.schemas.service_order import (
+    ServiceOrderAssigneeValidation,
+    ServiceOrderCreate,
+    ServiceOrderRead,
+    ServiceOrderStatusHistoryRead,
+    ServiceOrderStatusUpdate,
+)
 
 __all__ = [
     "UserRegister",
@@ -32,4 +39,9 @@ __all__ = [
     "ListingBulkUpdateRequest",
     "ListingBulkUpdateResponse",
     "ListingQueryParams",
+    "ServiceOrderCreate",
+    "ServiceOrderStatusUpdate",
+    "ServiceOrderRead",
+    "ServiceOrderStatusHistoryRead",
+    "ServiceOrderAssigneeValidation",
 ]

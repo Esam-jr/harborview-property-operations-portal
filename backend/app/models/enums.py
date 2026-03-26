@@ -21,11 +21,9 @@ class ListingMediaType(str, Enum):
 
 
 class ServiceOrderStatus(str, Enum):
-    submitted = "submitted"
-    assigned = "assigned"
+    pending = "pending"
     in_progress = "in_progress"
     completed = "completed"
-    cancelled = "cancelled"
 
 
 class BillingStatus(str, Enum):

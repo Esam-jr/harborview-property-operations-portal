@@ -17,7 +17,7 @@ class ServiceOrder(Base, TimestampMixin):
     status: Mapped[ServiceOrderStatus] = mapped_column(
         Enum(ServiceOrderStatus, name="service_order_status"),
         nullable=False,
-        default=ServiceOrderStatus.submitted,
+        default=ServiceOrderStatus.pending,
     )
 
     resident: Mapped["User"] = relationship(
@@ -28,6 +28,12 @@ class ServiceOrder(Base, TimestampMixin):
         foreign_keys=[assigned_to_user_id],
         back_populates="assigned_service_orders",
     )
+    status_history: Mapped[list["ServiceOrderStatusHistory"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="ServiceOrderStatusHistory.changed_at",
+    )
 
 
+from app.models.service_order_status_history import ServiceOrderStatusHistory  # noqa: E402,F401
 from app.models.user import User  # noqa: E402,F401

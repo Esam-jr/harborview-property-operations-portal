@@ -23,6 +23,9 @@ class User(Base, TimestampMixin):
         foreign_keys="ServiceOrder.assigned_to_user_id",
         back_populates="assignee",
     )
+    order_status_changes: Mapped[list["ServiceOrderStatusHistory"]] = relationship(
+        back_populates="changed_by"
+    )
     billing_records: Mapped[list["BillingRecord"]] = relationship(back_populates="resident")
     submitted_payment_evidences: Mapped[list["PaymentEvidence"]] = relationship(
         back_populates="submitted_by"
@@ -33,3 +36,4 @@ from app.models.billing_record import BillingRecord  # noqa: E402,F401
 from app.models.payment_evidence import PaymentEvidence  # noqa: E402,F401
 from app.models.property_listing import PropertyListing  # noqa: E402,F401
 from app.models.service_order import ServiceOrder  # noqa: E402,F401
+from app.models.service_order_status_history import ServiceOrderStatusHistory  # noqa: E402,F401

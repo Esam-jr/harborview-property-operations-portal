@@ -12,5 +12,6 @@ from app.models import (  # noqa: E402,F401
     PropertyListing,
     PropertyListingMedia,
     ServiceOrder,
+    ServiceOrderStatusHistory,
     User,
 )
