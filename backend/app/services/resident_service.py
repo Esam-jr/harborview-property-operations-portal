@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import UserRole
 from app.models.user import User
+from app.services.user_service import UserService
 
 
 class ResidentService:
@@ -21,13 +22,13 @@ class ResidentService:
     ) -> User:
         ResidentService._require_resident(current_user)
 
-        current_user.shipping_address = shipping_address
-        current_user.mailing_address = mailing_address
-
         try:
-            db.add(current_user)
-            db.commit()
-            db.refresh(current_user)
+            updated = UserService.update_user_address(
+                db=db,
+                user_id=current_user.id,
+                shipping_address=shipping_address,
+                mailing_address=mailing_address,
+            )
         except SQLAlchemyError:
             db.rollback()
             raise HTTPException(
@@ -35,7 +36,10 @@ class ResidentService:
                 detail="Failed to update resident addresses",
             )
 
-        return current_user
+        if updated is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resident not found")
+
+        return updated
 
     @staticmethod
     def _require_resident(current_user: User) -> None:

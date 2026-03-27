@@ -21,6 +21,14 @@ from app.services.billing_service import BillingService
 router = APIRouter(prefix="/billing", tags=["billing"])
 
 
+def _require_billing_access(user: User) -> None:
+    if user.role not in {UserRole.admin, UserRole.manager, UserRole.clerk, UserRole.resident}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access billing module",
+        )
+
+
 @router.post("", response_model=BillingRead, status_code=status.HTTP_201_CREATED)
 def create_billing_record(
     payload: BillingCreate,
@@ -48,6 +56,7 @@ def get_billing_records(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[BillingRead]:
+    _require_billing_access(current_user)
     records = BillingService.get_billing_records(db=db, current_user=current_user)
     return [BillingRead.model_validate(record) for record in records]
 
@@ -59,6 +68,7 @@ def download_statement(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_billing_access(current_user)
     result = BillingService.download_statement(
         db=db,
         billing_id=billing_id,

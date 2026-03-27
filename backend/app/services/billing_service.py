@@ -64,6 +64,7 @@ class BillingService:
 
     @staticmethod
     def get_billing_records(db: Session, current_user: User) -> list[BillingRecord]:
+        BillingService._require_billing_visibility_role(current_user)
         query = BillingService._base_query().order_by(BillingRecord.created_at.desc())
 
         if current_user.role == UserRole.resident:
@@ -83,9 +84,7 @@ class BillingService:
         proof_file: UploadFile,
     ) -> PaymentEvidence:
         record = BillingService.get_billing_record_or_404(db, billing_id)
-
-        if current_user.role == UserRole.resident and record.resident_user_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot upload proof for another resident")
+        BillingService._ensure_record_access(record, current_user)
 
         if amount <= 0:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Amount must be greater than 0")
@@ -141,9 +140,7 @@ class BillingService:
         reason: str,
     ) -> BillingRecord:
         record = BillingService.get_billing_record_or_404(db, billing_id)
-
-        if current_user.role == UserRole.resident and record.resident_user_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot request refund for another resident")
+        BillingService._ensure_record_access(record, current_user)
 
         if amount > record.amount_due:
             raise HTTPException(
@@ -192,9 +189,7 @@ class BillingService:
         fmt: StatementFormat,
     ) -> dict | Response:
         record = BillingService.get_billing_record_or_404(db, billing_id)
-
-        if current_user.role == UserRole.resident and record.resident_user_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access another resident statement")
+        BillingService._ensure_record_access(record, current_user)
 
         statement_payload = {
             "billing_id": record.id,
@@ -229,3 +224,14 @@ class BillingService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Billing record not found")
 
         return record
+
+    @staticmethod
+    def _require_billing_visibility_role(current_user: User) -> None:
+        if current_user.role not in {UserRole.admin, UserRole.manager, UserRole.clerk, UserRole.resident}:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access billing records")
+
+    @staticmethod
+    def _ensure_record_access(record: BillingRecord, current_user: User) -> None:
+        BillingService._require_billing_visibility_role(current_user)
+        if current_user.role == UserRole.resident and record.resident_user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access another resident billing record")
