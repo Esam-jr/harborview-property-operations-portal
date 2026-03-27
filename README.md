@@ -17,6 +17,25 @@ Frontend: `http://localhost:5173`
 Backend: `http://localhost:8000`  
 API Health: `http://localhost:8000/api/v1/health/`
 
+## Optional Offline Install Mode (Frontend)
+Set `VITE_ENABLE_OFFLINE_MODE=true` when building/running the frontend to enable:
+- Installable app experience (desktop/tablet/kiosk)
+- Offline shell support via service worker
+- Cached fallback for previously loaded GET API responses
+
+Example:
+```bash
+cd frontend
+VITE_ENABLE_OFFLINE_MODE=true npm run build
+```
+
+PowerShell example:
+```powershell
+cd frontend
+$env:VITE_ENABLE_OFFLINE_MODE = "true"
+npm run build
+```
+
 ## Project Structure
 - `frontend/` Vue app skeleton with router, pages, and reusable components
 - `backend/` FastAPI app skeleton with modular `routers/`, `models/`, `services/`, `schemas/`, and `db/`

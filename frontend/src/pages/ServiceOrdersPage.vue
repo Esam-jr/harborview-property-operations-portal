@@ -24,45 +24,47 @@
       </div>
       <p v-if="error" class="error-text">{{ error }}</p>
 
-      <table class="table" v-if="orders.length">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Resident</th>
-            <th>Dispatcher</th>
-            <th>History</th>
-            <th v-if="canUpdateStatus">Update</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in orders" :key="item.id">
-            <td>{{ item.id }}</td>
-            <td>{{ item.title }}</td>
-            <td>{{ item.status }}</td>
-            <td>{{ item.resident_user_id }}</td>
-            <td>{{ item.assigned_to_user_id || "-" }}</td>
-            <td>{{ item.status_history?.length || 0 }} events</td>
-            <td v-if="canUpdateStatus">
-              <div class="inline-group">
-                <select v-model="statusMap[item.id]">
-                  <option value="pending">pending</option>
-                  <option value="in_progress">in_progress</option>
-                  <option value="completed">completed</option>
-                </select>
-                <input
-                  v-model="assigneeMap[item.id]"
-                  type="number"
-                  min="1"
-                  placeholder="Dispatcher ID"
-                />
-                <button type="button" @click="updateStatus(item.id)">Apply</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-wrap" v-if="orders.length">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Resident</th>
+              <th>Dispatcher</th>
+              <th>History</th>
+              <th v-if="canUpdateStatus">Update</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in orders" :key="item.id">
+              <td>{{ item.id }}</td>
+              <td>{{ item.title }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ item.resident_user_id }}</td>
+              <td>{{ item.assigned_to_user_id || "-" }}</td>
+              <td>{{ item.status_history?.length || 0 }} events</td>
+              <td v-if="canUpdateStatus">
+                <div class="inline-group">
+                  <select v-model="statusMap[item.id]">
+                    <option value="pending">pending</option>
+                    <option value="in_progress">in_progress</option>
+                    <option value="completed">completed</option>
+                  </select>
+                  <input
+                    v-model="assigneeMap[item.id]"
+                    type="number"
+                    min="1"
+                    placeholder="Dispatcher ID"
+                  />
+                  <button type="button" @click="updateStatus(item.id)">Apply</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-else>No service orders yet.</p>
     </div>
   </section>

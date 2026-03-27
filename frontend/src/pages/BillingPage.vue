@@ -33,35 +33,37 @@
 
       <p v-if="error" class="error-text">{{ error }}</p>
 
-      <table class="table" v-if="records.length">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Reference</th>
-            <th>Resident</th>
-            <th>Amount Due</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="record in records" :key="record.id">
-            <td>{{ record.id }}</td>
-            <td>{{ record.reference_code }}</td>
-            <td>{{ record.resident_user_id }}</td>
-            <td>{{ record.amount_due }}</td>
-            <td>{{ record.status }}</td>
-            <td>
-              <div class="inline-group">
-                <button type="button" @click="openProof(record.id)">Upload Proof</button>
-                <button type="button" @click="openRefund(record.id)">Refund</button>
-                <button type="button" @click="downloadJson(record.id)">Statement JSON</button>
-                <button type="button" @click="downloadPdf(record.id)">Statement PDF</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-wrap" v-if="records.length">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Reference</th>
+              <th>Resident</th>
+              <th>Amount Due</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="record in records" :key="record.id">
+              <td>{{ record.id }}</td>
+              <td>{{ record.reference_code }}</td>
+              <td>{{ record.resident_user_id }}</td>
+              <td>{{ record.amount_due }}</td>
+              <td>{{ record.status }}</td>
+              <td>
+                <div class="inline-group">
+                  <button type="button" @click="openProof(record.id)">Upload Proof</button>
+                  <button type="button" @click="openRefund(record.id)">Refund</button>
+                  <button type="button" @click="downloadJson(record.id)">Statement JSON</button>
+                  <button type="button" @click="downloadPdf(record.id)">Statement PDF</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-else>No billing records yet.</p>
     </div>
 

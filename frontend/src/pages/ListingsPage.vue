@@ -50,30 +50,32 @@
         </div>
         <p v-if="error" class="error-text">{{ error }}</p>
 
-        <table class="table" v-if="listings.length">
-          <thead>
-            <tr>
-              <th></th>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Owner</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in listings" :key="item.id">
-              <td><input type="checkbox" :value="item.id" v-model="selectedIds" /></td>
-              <td>{{ item.id }}</td>
-              <td>{{ item.title }}</td>
-              <td>{{ item.status }}</td>
-              <td>{{ item.owner_user_id }}</td>
-              <td>
-                <button type="button" @click="openEdit(item)">Edit</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap" v-if="listings.length">
+          <table class="table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in listings" :key="item.id">
+                <td><input type="checkbox" :value="item.id" v-model="selectedIds" /></td>
+                <td>{{ item.id }}</td>
+                <td>{{ item.title }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.owner_user_id }}</td>
+                <td>
+                  <button type="button" @click="openEdit(item)">Edit</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p v-else>No listings yet.</p>
 
         <div class="inline-group">

@@ -30,35 +30,37 @@
           <button type="button" @click="loadBilling">Refresh</button>
         </div>
 
-        <table class="table" v-if="billingRecords.length">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Reference</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="record in billingRecords" :key="record.id">
-              <td>{{ record.id }}</td>
-              <td>{{ record.reference_code }}</td>
-              <td>{{ record.amount_due }}</td>
-              <td>
-                <span class="badge" :class="`badge-${record.status}`">{{ record.status }}</span>
-              </td>
-              <td>
-                <div class="inline-group">
-                  <button type="button" @click="viewStatement(record.id)">View</button>
-                  <button type="button" @click="downloadStatementPdf(record.id)">Download PDF</button>
-                  <button type="button" @click="openProof(record.id)">Upload Proof</button>
-                  <button type="button" @click="openRefund(record.id)">Request Refund</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap" v-if="billingRecords.length">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="record in billingRecords" :key="record.id">
+                <td>{{ record.id }}</td>
+                <td>{{ record.reference_code }}</td>
+                <td>{{ record.amount_due }}</td>
+                <td>
+                  <span class="badge" :class="`badge-${record.status}`">{{ record.status }}</span>
+                </td>
+                <td>
+                  <div class="inline-group">
+                    <button type="button" @click="viewStatement(record.id)">View</button>
+                    <button type="button" @click="downloadStatementPdf(record.id)">Download PDF</button>
+                    <button type="button" @click="openProof(record.id)">Upload Proof</button>
+                    <button type="button" @click="openRefund(record.id)">Request Refund</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p v-else>No billing records found.</p>
       </div>
 
@@ -121,33 +123,35 @@
           <button type="button" @click="loadOrders">Refresh</button>
         </div>
 
-        <table class="table" v-if="orders.length">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Milestones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="order in orders" :key="order.id">
-              <td>{{ order.id }}</td>
-              <td>{{ order.title }}</td>
-              <td>
-                <span class="badge" :class="`badge-${order.status}`">{{ order.status }}</span>
-              </td>
-              <td>
-                <ul class="flat-list compact-list">
-                  <li v-for="step in order.status_history" :key="step.id">
-                    <span class="badge" :class="`badge-${step.status}`">{{ step.status }}</span>
-                    <span> - {{ formatDate(step.changed_at) }}</span>
-                  </li>
-                </ul>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap" v-if="orders.length">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Milestones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in orders" :key="order.id">
+                <td>{{ order.id }}</td>
+                <td>{{ order.title }}</td>
+                <td>
+                  <span class="badge" :class="`badge-${order.status}`">{{ order.status }}</span>
+                </td>
+                <td>
+                  <ul class="flat-list compact-list">
+                    <li v-for="step in order.status_history" :key="step.id">
+                      <span class="badge" :class="`badge-${step.status}`">{{ step.status }}</span>
+                      <span> - {{ formatDate(step.changed_at) }}</span>
+                    </li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p v-else>No service orders found.</p>
       </div>
 
