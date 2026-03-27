@@ -69,12 +69,17 @@ class ServiceOrderService:
         db: Session,
         order_id: int,
         new_status: ServiceOrderStatus,
-        changed_by_user_id: int,
+        changed_by_user_id: int | None = None,
+        changed_by_user: User | None = None,
         assigned_to_user_id: int | None = None,
         note: str | None = None,
     ) -> ServiceOrder:
         order = ServiceOrderService.get_by_id_or_404(db, order_id)
-        changed_by_user = db.execute(select(User).where(User.id == changed_by_user_id)).scalar_one_or_none()
+        actor_user: User | None = changed_by_user
+        if actor_user is None and changed_by_user_id is not None:
+            actor_user = db.execute(select(User).where(User.id == changed_by_user_id)).scalar_one_or_none()
+
+        changed_by_user = actor_user
         if changed_by_user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
