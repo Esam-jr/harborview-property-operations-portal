@@ -1,4 +1,6 @@
-﻿from fastapi import HTTPException, status
+from datetime import datetime
+
+from fastapi import HTTPException, status
 from sqlalchemy import Select, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
@@ -15,11 +17,18 @@ class ServiceOrderService:
         return select(ServiceOrder).options(joinedload(ServiceOrder.status_history))
 
     @staticmethod
-    def create_order(db: Session, resident_user_id: int, title: str, description: str) -> ServiceOrder:
+    def create_order(
+        db: Session,
+        resident_user_id: int,
+        title: str,
+        description: str,
+        due_date: datetime | None = None,
+    ) -> ServiceOrder:
         order = ServiceOrder(
             resident_user_id=resident_user_id,
             title=title.strip(),
             description=description.strip(),
+            due_date=due_date,
             status=ServiceOrderStatus.pending,
         )
 
@@ -31,6 +40,7 @@ class ServiceOrderService:
                 order_id=order.id,
                 status=ServiceOrderStatus.pending,
                 changed_by_user_id=resident_user_id,
+                note="Order submitted",
             )
             db.add(history)
             db.commit()
@@ -44,11 +54,13 @@ class ServiceOrderService:
         return ServiceOrderService.get_by_id_or_404(db, order.id)
 
     @staticmethod
-    def get_orders(db: Session, current_user: User) -> list[ServiceOrder]:
+    def get_orders(db: Session, current_user: User, assigned_only: bool = False) -> list[ServiceOrder]:
         query = ServiceOrderService._base_query().order_by(ServiceOrder.created_at.desc())
 
         if current_user.role == UserRole.resident:
             query = query.where(ServiceOrder.resident_user_id == current_user.id)
+        elif assigned_only:
+            query = query.where(ServiceOrder.assigned_to_user_id == current_user.id)
 
         return list(db.execute(query).scalars().unique().all())
 
@@ -57,10 +69,20 @@ class ServiceOrderService:
         db: Session,
         order_id: int,
         new_status: ServiceOrderStatus,
-        changed_by_user: User,
+        changed_by_user_id: int,
         assigned_to_user_id: int | None = None,
+        note: str | None = None,
     ) -> ServiceOrder:
         order = ServiceOrderService.get_by_id_or_404(db, order_id)
+        changed_by_user = db.execute(select(User).where(User.id == changed_by_user_id)).scalar_one_or_none()
+        if changed_by_user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        if changed_by_user.role not in {UserRole.dispatcher, UserRole.manager, UserRole.admin}:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only dispatcher, manager, or admin can update order status",
+            )
 
         if assigned_to_user_id is not None:
             assignee = db.execute(select(User).where(User.id == assigned_to_user_id)).scalar_one_or_none()
@@ -72,6 +94,15 @@ class ServiceOrderService:
                     detail="Assignee must have dispatcher role",
                 )
             order.assigned_to_user_id = assigned_to_user_id
+
+        if changed_by_user.role == UserRole.dispatcher and order.assigned_to_user_id not in (
+            None,
+            changed_by_user.id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Dispatcher can only update unassigned or self-assigned orders",
+            )
 
         if new_status == ServiceOrderStatus.in_progress and order.assigned_to_user_id is None:
             raise HTTPException(
@@ -85,6 +116,7 @@ class ServiceOrderService:
             order_id=order.id,
             status=new_status,
             changed_by_user_id=changed_by_user.id,
+            note=note,
         )
 
         try:
