@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Enum, Integer, String
+﻿from sqlalchemy import Enum, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -13,6 +13,8 @@ class User(Base, TimestampMixin):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role"), nullable=False)
+    shipping_address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mailing_address: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     property_listings: Mapped[list["PropertyListing"]] = relationship(back_populates="owner")
     requested_service_orders: Mapped[list["ServiceOrder"]] = relationship(

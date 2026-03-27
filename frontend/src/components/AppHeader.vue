@@ -5,8 +5,10 @@
       <span class="user-chip">{{ auth.state.username }} ({{ auth.state.role || "unknown" }})</span>
     </div>
     <nav>
+      <router-link to="/home">Home</router-link>
       <router-link to="/dashboard">Dashboard</router-link>
-      <router-link to="/listings">Listings</router-link>
+      <router-link v-if="auth.state.role === 'resident'" to="/resident-dashboard">Resident Dashboard</router-link>
+      <router-link v-if="auth.state.role === 'manager'" to="/listings">Listings</router-link>
       <router-link to="/service-orders">Service Orders</router-link>
       <router-link to="/billing">Billing</router-link>
       <button class="link-btn" @click="logout">Logout</button>

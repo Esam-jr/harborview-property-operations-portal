@@ -15,6 +15,12 @@ from app.schemas.billing import (
     RefundResponse,
     UploadProofResponse,
 )
+from app.schemas.homepage import (
+    HomePageConfigRead,
+    HomePageConfigUpdate,
+    HomePageContentRead,
+    HomePageSections,
+)
 from app.schemas.listing import (
     ListingBulkUpdateRequest,
     ListingBulkUpdateResponse,
@@ -24,6 +30,7 @@ from app.schemas.listing import (
     ListingRead,
     ListingUpdate,
 )
+from app.schemas.resident import ResidentAddressUpdate, ResidentProfileRead
 from app.schemas.service_order import (
     ServiceOrderAssigneeValidation,
     ServiceOrderCreate,
@@ -58,4 +65,10 @@ __all__ = [
     "RefundRequest",
     "RefundResponse",
     "BillingStatementResponse",
+    "HomePageSections",
+    "HomePageConfigRead",
+    "HomePageConfigUpdate",
+    "HomePageContentRead",
+    "ResidentProfileRead",
+    "ResidentAddressUpdate",
 ]

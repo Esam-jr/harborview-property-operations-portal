@@ -2,14 +2,22 @@
 
 import BillingPage from "../pages/BillingPage.vue";
 import DashboardPage from "../pages/DashboardPage.vue";
+import HomePage from "../pages/HomePage.vue";
 import ListingsPage from "../pages/ListingsPage.vue";
 import LoginPage from "../pages/LoginPage.vue";
+import ResidentDashboardPage from "../pages/ResidentDashboardPage.vue";
 import ServiceOrdersPage from "../pages/ServiceOrdersPage.vue";
 import { useAuthStore } from "../stores/auth";
 
 const routes = [
-  { path: "/", redirect: "/dashboard" },
+  { path: "/", redirect: "/home" },
   { path: "/login", name: "login", component: LoginPage, meta: { public: true } },
+  {
+    path: "/home",
+    name: "home",
+    component: HomePage,
+    meta: { roles: ["admin", "manager", "clerk", "dispatcher", "resident"] },
+  },
   {
     path: "/dashboard",
     name: "dashboard",
@@ -17,10 +25,16 @@ const routes = [
     meta: { roles: ["admin", "manager", "clerk", "dispatcher", "resident"] },
   },
   {
+    path: "/resident-dashboard",
+    name: "resident-dashboard",
+    component: ResidentDashboardPage,
+    meta: { roles: ["resident"] },
+  },
+  {
     path: "/listings",
     name: "listings",
     component: ListingsPage,
-    meta: { roles: ["admin", "manager", "clerk", "dispatcher", "resident"] },
+    meta: { roles: ["manager"] },
   },
   {
     path: "/service-orders",
@@ -49,7 +63,7 @@ router.beforeEach((to) => {
   }
 
   if (to.name === "login" && isAuthenticated()) {
-    return { name: "dashboard" };
+    return { name: "home" };
   }
 
   const allowedRoles = to.meta.roles;

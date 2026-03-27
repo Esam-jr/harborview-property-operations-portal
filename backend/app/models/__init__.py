@@ -1,4 +1,5 @@
 ﻿from app.models.billing_record import BillingRecord
+from app.models.homepage_config import HomePageConfig
 from app.models.payment_evidence import PaymentEvidence
 from app.models.property_listing import PropertyListing
 from app.models.property_listing_media import PropertyListingMedia
@@ -8,6 +9,7 @@ from app.models.user import User
 
 __all__ = [
     "User",
+    "HomePageConfig",
     "PropertyListing",
     "PropertyListingMedia",
     "ServiceOrder",

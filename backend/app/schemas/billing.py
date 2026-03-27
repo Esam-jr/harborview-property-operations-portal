@@ -34,6 +34,13 @@ class UploadProofResponse(BaseModel):
     payment_method: PaymentMethod
 
 
+class UploadProofRequest(BaseModel):
+    payment_method: PaymentMethod
+    amount: Decimal = Field(gt=0)
+    payment_date: date
+    reference_number: str | None = None
+
+
 class RefundRequest(BaseModel):
     amount: Decimal = Field(gt=0)
     reason: str = Field(min_length=3, max_length=500)

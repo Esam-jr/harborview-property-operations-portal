@@ -8,6 +8,8 @@
     <div class="card">
       <h3>Available Modules</h3>
       <ul class="flat-list">
+        <li><router-link to="/home">Home</router-link></li>
+        <li v-if="canAccessResidentDashboard"><router-link to="/resident-dashboard">Resident Dashboard</router-link></li>
         <li v-if="canAccessListings"><router-link to="/listings">Listings</router-link></li>
         <li v-if="canAccessOrders"><router-link to="/service-orders">Service Orders</router-link></li>
         <li v-if="canAccessBilling"><router-link to="/billing">Billing</router-link></li>
@@ -27,9 +29,8 @@ const route = useRoute();
 
 const accessDenied = computed(() => route.query.denied === "1");
 
-const canAccessListings = computed(() =>
-  ["admin", "manager", "clerk", "dispatcher", "resident"].includes(auth.state.role),
-);
+const canAccessResidentDashboard = computed(() => auth.state.role === "resident");
+const canAccessListings = computed(() => ["manager"].includes(auth.state.role));
 const canAccessOrders = computed(() =>
   ["admin", "manager", "dispatcher", "resident"].includes(auth.state.role),
 );

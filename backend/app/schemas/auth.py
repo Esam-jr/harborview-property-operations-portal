@@ -38,6 +38,8 @@ class TokenPayload(BaseModel):
 class AuthenticatedUser(BaseModel):
     username: str
     role: UserRole
+    shipping_address: str | None = None
+    mailing_address: str | None = None
 
 
 class ProtectedMessage(BaseModel):

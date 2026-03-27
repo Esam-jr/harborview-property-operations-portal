@@ -81,6 +81,12 @@ def upload_payment_proof(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UploadProofResponse:
+    if current_user.role not in {UserRole.resident, UserRole.clerk, UserRole.manager, UserRole.admin}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to upload payment evidence",
+        )
+
     evidence = BillingService.upload_payment_proof(
         db=db,
         billing_id=billing_id,
@@ -109,6 +115,12 @@ def request_refund(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RefundResponse:
+    if current_user.role not in {UserRole.resident, UserRole.clerk, UserRole.manager, UserRole.admin}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to request refund",
+        )
+
     record = BillingService.request_refund(
         db=db,
         billing_id=billing_id,

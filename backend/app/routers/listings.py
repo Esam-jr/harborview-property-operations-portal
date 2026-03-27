@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.enums import ListingStatus
+from app.models.enums import ListingStatus, UserRole
 from app.models.user import User
 from app.schemas.listing import (
     ListingBulkUpdateRequest,
@@ -15,6 +15,14 @@ from app.schemas.listing import (
 from app.services.listing_service import ListingService
 
 router = APIRouter(prefix="/listings", tags=["listings"])
+
+
+def _require_manager(user: User) -> None:
+    if user.role != UserRole.manager:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only manager role can manage listings",
+        )
 
 
 @router.post("", response_model=ListingRead)
@@ -27,6 +35,8 @@ def create_listing(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ListingRead:
+    _require_manager(current_user)
+
     listing = ListingService.create_listing(
         db=db,
         owner_user_id=current_user.id,
@@ -48,8 +58,10 @@ def edit_listing(
     price_amount: Decimal | None = Form(default=None),
     files: list[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> ListingRead:
+    _require_manager(current_user)
+
     if all(field is None for field in [title, description, price_amount, listing_status]) and len(files) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,8 +95,10 @@ def get_listings(
 def bulk_update_listings(
     payload: ListingBulkUpdateRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> ListingBulkUpdateResponse:
+    _require_manager(current_user)
+
     updated_count = ListingService.bulk_update_status(
         db=db,
         listing_ids=payload.ids,
