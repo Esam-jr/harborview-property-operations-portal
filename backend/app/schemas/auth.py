@@ -12,6 +12,8 @@ class UserBase(BaseModel):
 
 class UserRegister(UserBase):
     password: str = Field(min_length=8)
+    shipping_address: str | None = None
+    mailing_address: str | None = None
 
 
 class UserLogin(BaseModel):
@@ -23,6 +25,8 @@ class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    shipping_address: str | None = None
+    mailing_address: str | None = None
 
 
 class TokenResponse(BaseModel):
