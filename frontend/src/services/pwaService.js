@@ -2,7 +2,7 @@ import { reactive } from "vue";
 
 const ENABLE_OFFLINE_MODE = String(import.meta.env.VITE_ENABLE_OFFLINE_MODE || "").toLowerCase() === "true";
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || "v1";
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 let deferredInstallPrompt = null;
 
