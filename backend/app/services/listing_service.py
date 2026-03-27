@@ -7,9 +7,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
-from app.models.enums import ListingMediaType, ListingStatus
+from app.models.enums import ListingMediaType, ListingStatus, UserRole
 from app.models.property_listing import PropertyListing
 from app.models.property_listing_media import PropertyListingMedia
+from app.models.user import User
 from app.services.file_validation import (
     build_storage_filename,
     ensure_upload_directory,
@@ -126,6 +127,32 @@ class ListingService:
         return list(db.execute(query.order_by(PropertyListing.created_at.desc())).scalars().unique().all())
 
     @staticmethod
+    def publish_listing(db: Session, listing_id: int, user_id: int) -> PropertyListing:
+        listing = ListingService.get_by_id_or_404(db, listing_id)
+        user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        if user.role != UserRole.manager and listing.owner_user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not allowed to publish this listing",
+            )
+
+        listing.status = ListingStatus.published
+        try:
+            db.add(listing)
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to publish listing",
+            )
+
+        return ListingService.get_by_id_or_404(db, listing.id)
+
+    @staticmethod
     def bulk_update_status(db: Session, listing_ids: list[int], listing_status: ListingStatus) -> int:
         listings = db.execute(
             ListingService._base_query().where(PropertyListing.id.in_(listing_ids))
@@ -164,18 +191,22 @@ class ListingService:
         return listing
 
     @staticmethod
-    def _save_media_files(db: Session, listing_id: int, files: list[UploadFile]) -> None:
-        if not files:
-            return
-
-        upload_dir = ensure_upload_directory()
+    def validate_media(files: list[UploadFile]) -> list[tuple[UploadFile, bytes, int, ListingMediaType]]:
         prepared_files: list[tuple[UploadFile, bytes, int, ListingMediaType]] = []
-
         for upload in files:
             file_bytes = upload.file.read()
             file_size = len(file_bytes)
             media_type = validate_upload_file(upload, file_size)
             prepared_files.append((upload, file_bytes, file_size, media_type))
+        return prepared_files
+
+    @staticmethod
+    def _save_media_files(db: Session, listing_id: int, files: list[UploadFile]) -> None:
+        if not files:
+            return
+
+        upload_dir = ensure_upload_directory()
+        prepared_files = ListingService.validate_media(files)
 
         for upload, file_bytes, file_size, media_type in prepared_files:
             stored_name = build_storage_filename(upload.filename)

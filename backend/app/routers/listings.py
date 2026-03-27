@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.enums import ListingStatus, UserRole
+from app.models.property_listing import PropertyListing
 from app.models.user import User
 from app.schemas.listing import (
     ListingBulkUpdateRequest,
@@ -22,6 +23,16 @@ def _require_manager(user: User) -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only manager role can manage listings",
+        )
+
+
+def _require_listing_owner_or_manager(listing: PropertyListing, user: User) -> None:
+    if user.role == UserRole.manager:
+        return
+    if listing.owner_user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to modify this listing",
         )
 
 
@@ -60,15 +71,15 @@ def edit_listing(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ListingRead:
-    _require_manager(current_user)
-
     if all(field is None for field in [title, description, price_amount, listing_status]) and len(files) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one field or media file must be provided",
         )
+    listing = ListingService.get_by_id_or_404(db, listing_id)
+    _require_listing_owner_or_manager(listing, current_user)
 
-    listing = ListingService.update_listing(
+    updated_listing = ListingService.update_listing(
         db=db,
         listing_id=listing_id,
         title=title,
@@ -77,6 +88,16 @@ def edit_listing(
         listing_status=listing_status,
         files=files,
     )
+    return ListingRead.model_validate(updated_listing)
+
+
+@router.put("/{listing_id}/publish", response_model=ListingRead)
+def publish_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ListingRead:
+    listing = ListingService.publish_listing(db=db, listing_id=listing_id, user_id=current_user.id)
     return ListingRead.model_validate(listing)
 
 
