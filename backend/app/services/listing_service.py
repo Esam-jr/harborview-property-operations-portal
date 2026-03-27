@@ -6,7 +6,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.config import settings
+from app.core.config import get_logger, settings
 from app.models.enums import ListingMediaType, ListingStatus, UserRole
 from app.models.property_listing import PropertyListing
 from app.models.property_listing_media import PropertyListingMedia
@@ -16,6 +16,8 @@ from app.services.file_validation import (
     ensure_upload_directory,
     validate_upload_file,
 )
+
+logger = get_logger(__name__)
 
 
 class ListingService:
@@ -61,11 +63,29 @@ class ListingService:
             db.flush()
             ListingService._save_media_files(db, listing.id, files)
             db.commit()
+            logger.info(
+                "Listing created listing_id=%s owner_user_id=%s status=%s",
+                listing.id,
+                owner_user_id,
+                listing_status.value,
+            )
         except HTTPException:
             db.rollback()
+            logger.warning(
+                "Listing create validation failure owner_user_id=%s title=%s",
+                owner_user_id,
+                title,
+                exc_info=True,
+            )
             raise
         except SQLAlchemyError:
             db.rollback()
+            logger.error(
+                "Listing create database error owner_user_id=%s title=%s",
+                owner_user_id,
+                title,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create listing",
@@ -99,11 +119,14 @@ class ListingService:
             ListingService._save_media_files(db, listing.id, files)
             db.add(listing)
             db.commit()
+            logger.info("Listing updated listing_id=%s status=%s", listing.id, listing.status.value)
         except HTTPException:
             db.rollback()
+            logger.warning("Listing update validation failure listing_id=%s", listing_id, exc_info=True)
             raise
         except SQLAlchemyError:
             db.rollback()
+            logger.error("Listing update database error listing_id=%s", listing_id, exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update listing",
@@ -131,9 +154,16 @@ class ListingService:
         listing = ListingService.get_by_id_or_404(db, listing_id)
         user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
         if user is None:
+            logger.warning("Listing publish failed: user not found listing_id=%s user_id=%s", listing_id, user_id)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         if user.role != UserRole.manager and listing.owner_user_id != user.id:
+            logger.warning(
+                "Listing publish forbidden listing_id=%s user_id=%s owner_user_id=%s",
+                listing_id,
+                user_id,
+                listing.owner_user_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You are not allowed to publish this listing",
@@ -143,8 +173,10 @@ class ListingService:
         try:
             db.add(listing)
             db.commit()
+            logger.info("Listing published listing_id=%s by_user_id=%s", listing_id, user_id)
         except SQLAlchemyError:
             db.rollback()
+            logger.error("Listing publish database error listing_id=%s user_id=%s", listing_id, user_id, exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to publish listing",
@@ -159,6 +191,7 @@ class ListingService:
         ).scalars().unique().all()
 
         if len(listings) != len(listing_ids):
+            logger.warning("Bulk listing status update failed: listing(s) missing ids=%s", listing_ids)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="One or more listings were not found",
@@ -170,8 +203,20 @@ class ListingService:
                 db.add(listing)
 
             db.commit()
+            logger.info(
+                "Bulk listing status update applied count=%s status=%s ids=%s",
+                len(listings),
+                listing_status.value,
+                listing_ids,
+            )
         except SQLAlchemyError:
             db.rollback()
+            logger.error(
+                "Bulk listing status update database error status=%s ids=%s",
+                listing_status.value,
+                listing_ids,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update listing statuses",

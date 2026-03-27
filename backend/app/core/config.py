@@ -1,4 +1,5 @@
-﻿from datetime import timedelta
+import logging
+from datetime import timedelta
 
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -66,4 +67,22 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
+def _resolve_log_level(app_environment: str) -> int:
+    if app_environment.lower() in {"dev", "development", "local"}:
+        return logging.INFO
+    return logging.WARNING
+
+
+def configure_logging(app_environment: str) -> None:
+    logging.basicConfig(
+        level=_resolve_log_level(app_environment),
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    )
+
+
+def get_logger(name: str) -> logging.Logger:
+    return logging.getLogger(name)
+
+
 settings = Settings()
+configure_logging(settings.app_environment)

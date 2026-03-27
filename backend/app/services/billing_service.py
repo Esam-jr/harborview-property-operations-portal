@@ -7,6 +7,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.config import get_logger
 from app.models.billing_record import BillingRecord
 from app.models.enums import BillingStatus, EvidenceType, PaymentMethod, StatementFormat, UserRole
 from app.models.payment_evidence import PaymentEvidence
@@ -17,6 +18,8 @@ from app.services.billing_file_validation import (
     validate_billing_proof_file,
 )
 from app.services.utils import generate_reference
+
+logger = get_logger(__name__)
 
 
 class BillingService:
@@ -34,9 +37,11 @@ class BillingService:
     ) -> BillingRecord:
         resident = db.execute(select(User).where(User.id == resident_user_id)).scalar_one_or_none()
         if resident is None:
+            logger.warning("Billing create failed: resident not found resident_user_id=%s", resident_user_id)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resident user not found")
 
         if resident.role != UserRole.resident:
+            logger.warning("Billing create rejected: target user is not resident resident_user_id=%s", resident_user_id)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Billing can only target residents")
 
         reference_code = generate_reference("BILL", 10)
@@ -53,8 +58,20 @@ class BillingService:
         try:
             db.add(record)
             db.commit()
+            logger.info(
+                "Billing record created billing_id=%s resident_user_id=%s reference=%s",
+                record.id,
+                resident_user_id,
+                reference_code,
+            )
         except SQLAlchemyError:
             db.rollback()
+            logger.error(
+                "Billing create database error resident_user_id=%s reference=%s",
+                resident_user_id,
+                reference_code,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create billing record",
@@ -87,6 +104,7 @@ class BillingService:
         BillingService._ensure_record_access(record, current_user)
 
         if amount <= 0:
+            logger.warning("Upload proof rejected: non-positive amount billing_id=%s user_id=%s", billing_id, current_user.id)
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Amount must be greater than 0")
 
         file_bytes = proof_file.file.read()
@@ -116,14 +134,33 @@ class BillingService:
             record.status = BillingStatus.paid
             db.add(record)
             db.commit()
+            logger.info(
+                "Payment proof uploaded evidence_id=%s billing_id=%s user_id=%s",
+                evidence.id,
+                record.id,
+                current_user.id,
+            )
         except OSError:
             db.rollback()
+            logger.error(
+                "Payment proof file write failed billing_id=%s user_id=%s path=%s",
+                billing_id,
+                current_user.id,
+                stored_path,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to store proof file",
             )
         except SQLAlchemyError:
             db.rollback()
+            logger.error(
+                "Payment proof database save failed billing_id=%s user_id=%s",
+                billing_id,
+                current_user.id,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to save payment proof",
@@ -143,6 +180,13 @@ class BillingService:
         BillingService._ensure_record_access(record, current_user)
 
         if amount > record.amount_due:
+            logger.warning(
+                "Refund rejected: amount exceeds due billing_id=%s requested=%s due=%s user_id=%s",
+                billing_id,
+                amount,
+                record.amount_due,
+                current_user.id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Refund amount cannot exceed billed amount",
@@ -172,8 +216,20 @@ class BillingService:
             db.add(evidence)
             db.add(record)
             db.commit()
+            logger.info(
+                "Refund requested billing_id=%s user_id=%s credit_amount=%s",
+                billing_id,
+                current_user.id,
+                amount,
+            )
         except SQLAlchemyError:
             db.rollback()
+            logger.error(
+                "Refund request database error billing_id=%s user_id=%s",
+                billing_id,
+                current_user.id,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to request refund",
