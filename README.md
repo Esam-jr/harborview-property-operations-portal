@@ -53,3 +53,23 @@ bash run_tests.sh
 Test suites:
 - `unit_tests/` for service logic
 - `API_tests/` for auth, listings, and orders API flows
+
+## Backend Dev Setup (Hashing Dependencies)
+Install backend dependencies with compatible password-hashing packages:
+
+```bash
+cd backend
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+This installs:
+- `passlib[argon2,bcrypt]==1.7.4`
+- `argon2-cffi==23.1.0`
+- `bcrypt==3.2.0`
+
+If you're only running tests on Python 3.14 and hit `psycopg2-binary` build issues, install the hashing stack directly:
+
+```bash
+python -m pip install passlib[argon2,bcrypt]==1.7.4 argon2-cffi==23.1.0 bcrypt==3.2.0
+```

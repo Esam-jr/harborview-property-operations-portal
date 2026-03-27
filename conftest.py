@@ -16,7 +16,20 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models.enums import UserRole
+from app.models.property_listing import PropertyListing
+from app.models.property_listing_media import PropertyListingMedia
+from app.models.service_order import ServiceOrder
+from app.models.service_order_status_history import ServiceOrderStatusHistory
+from app.models.user import User
 from app.services.user_service import UserService
+
+TEST_TABLES = [
+    User.__table__,
+    PropertyListing.__table__,
+    PropertyListingMedia.__table__,
+    ServiceOrder.__table__,
+    ServiceOrderStatusHistory.__table__,
+]
 
 
 @pytest.fixture()
@@ -27,9 +40,9 @@ def test_engine(tmp_path):
         connect_args={"check_same_thread": False},
         future=True,
     )
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, tables=TEST_TABLES)
     yield engine
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=engine, tables=TEST_TABLES)
     engine.dispose()
 
 
