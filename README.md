@@ -42,3 +42,14 @@ npm run build
 - `docker-compose.yml` local orchestration for frontend, backend, and PostgreSQL
 
 Business logic is intentionally not implemented yet.
+
+## Test Runner
+Run all backend unit and API tests with one command:
+
+```bash
+bash run_tests.sh
+```
+
+Test suites:
+- `unit_tests/` for service logic
+- `API_tests/` for auth, listings, and orders API flows
