@@ -70,3 +70,57 @@ def test_non_resident_cannot_create_order(client):
     )
     assert create_response.status_code == 403
     assert create_response.json()["detail"] == "Only residents can create service orders"
+
+
+def test_resident_to_manager_chained_order_flow(client):
+    resident_id, resident_headers = _register_and_login(
+        client,
+        username="chain_resident",
+        password="resident-pass-123",
+        role="resident",
+    )
+    _, manager_headers = _register_and_login(
+        client,
+        username="chain_manager",
+        password="manager-pass-123",
+        role="manager",
+    )
+    dispatcher_id, _ = _register_and_login(
+        client,
+        username="chain_dispatcher",
+        password="dispatcher-pass-123",
+        role="dispatcher",
+    )
+
+    created = client.post(
+        "/api/v1/orders",
+        json={"title": "Water leak", "description": "There is a leak under the kitchen sink."},
+        headers=resident_headers,
+    )
+    assert created.status_code == 201
+    created_order = created.json()
+    order_id = created_order["id"]
+    assert created_order["resident_user_id"] == resident_id
+    assert created_order["status"] == "pending"
+    assert len(created_order["status_history"]) == 1
+
+    updated = client.put(
+        f"/api/v1/orders/{order_id}/status",
+        json={
+            "status": "in_progress",
+            "assigned_to_user_id": dispatcher_id,
+            "note": "Assigned and work started",
+        },
+        headers=manager_headers,
+    )
+    assert updated.status_code == 200
+    updated_order = updated.json()
+    assert updated_order["status"] == "in_progress"
+    assert updated_order["assigned_to_user_id"] == dispatcher_id
+    assert len(updated_order["status_history"]) == 2
+    assert updated_order["status_history"][-1]["status"] == "in_progress"
+    assert updated_order["status_history"][-1]["note"] == "Assigned and work started"
+
+    resident_fetch = client.get(f"/api/v1/orders/{order_id}", headers=resident_headers)
+    assert resident_fetch.status_code == 200
+    assert resident_fetch.json()["resident_user_id"] == resident_id

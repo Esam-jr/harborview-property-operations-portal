@@ -1,4 +1,5 @@
-﻿from hashlib import sha256
+from hashlib import sha256
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -28,32 +29,18 @@ class HomePageService:
     def get_admin_config(db: Session, current_user: User) -> HomePageConfigRead:
         HomePageService._require_admin(current_user)
         config = HomePageService._bootstrap_if_missing(db)
-
-        return HomePageConfigRead(
-            live=HomePageSections(
-                carousel_panels=config.live_carousel_panels,
-                recommended_tiles=config.live_recommended_tiles,
-                announcement_banners=config.live_announcement_banners,
-            ),
-            staged=HomePageSections(
-                carousel_panels=config.staged_carousel_panels,
-                recommended_tiles=config.staged_recommended_tiles,
-                announcement_banners=config.staged_announcement_banners,
-            ),
-            preview_enabled=config.preview_enabled,
-            rollout_enabled=config.rollout_enabled,
-            rollout_percentage=config.rollout_percentage,
-            full_enablement=config.full_enablement,
-        )
+        return HomePageService._to_config_read(config)
 
     @staticmethod
     def update_admin_config(db: Session, current_user: User, payload: HomePageConfigUpdate) -> HomePageConfigRead:
         HomePageService._require_admin(current_user)
         config = HomePageService._bootstrap_if_missing(db)
 
-        config.staged_carousel_panels = payload.staged.carousel_panels
-        config.staged_recommended_tiles = payload.staged.recommended_tiles
-        config.staged_announcement_banners = payload.staged.announcement_banners
+        staged_sections = HomePageService._sanitize_sections(payload.staged)
+
+        config.staged_carousel_panels = staged_sections.carousel_panels
+        config.staged_recommended_tiles = staged_sections.recommended_tiles
+        config.staged_announcement_banners = staged_sections.announcement_banners
 
         config.preview_enabled = payload.preview_enabled
         config.rollout_enabled = payload.rollout_enabled
@@ -61,9 +48,9 @@ class HomePageService:
         config.full_enablement = payload.full_enablement
 
         if payload.full_enablement:
-            config.live_carousel_panels = payload.staged.carousel_panels
-            config.live_recommended_tiles = payload.staged.recommended_tiles
-            config.live_announcement_banners = payload.staged.announcement_banners
+            config.live_carousel_panels = staged_sections.carousel_panels
+            config.live_recommended_tiles = staged_sections.recommended_tiles
+            config.live_announcement_banners = staged_sections.announcement_banners
 
         try:
             db.add(config)
@@ -75,7 +62,8 @@ class HomePageService:
                 detail="Failed to update homepage config",
             )
 
-        return HomePageService.get_admin_config(db, current_user)
+        refreshed = HomePageService._bootstrap_if_missing(db)
+        return HomePageService._to_config_read(refreshed)
 
     @staticmethod
     def get_homepage_for_user(db: Session, current_user: User) -> HomePageContentRead:
@@ -84,16 +72,16 @@ class HomePageService:
 
         if use_staged:
             sections = HomePageSections(
-                carousel_panels=config.staged_carousel_panels,
-                recommended_tiles=config.staged_recommended_tiles,
-                announcement_banners=config.staged_announcement_banners,
+                carousel_panels=HomePageService._normalize_list(config.staged_carousel_panels),
+                recommended_tiles=HomePageService._normalize_list(config.staged_recommended_tiles),
+                announcement_banners=HomePageService._normalize_list(config.staged_announcement_banners),
             )
             source = "staged"
         else:
             sections = HomePageSections(
-                carousel_panels=config.live_carousel_panels,
-                recommended_tiles=config.live_recommended_tiles,
-                announcement_banners=config.live_announcement_banners,
+                carousel_panels=HomePageService._normalize_list(config.live_carousel_panels),
+                recommended_tiles=HomePageService._normalize_list(config.live_recommended_tiles),
+                announcement_banners=HomePageService._normalize_list(config.live_announcement_banners),
             )
             source = "live"
 
@@ -104,6 +92,96 @@ class HomePageService:
             rollout_enabled=config.rollout_enabled,
             rollout_percentage=config.rollout_percentage,
             full_enablement=config.full_enablement,
+        )
+
+    @staticmethod
+    def _to_config_read(config: HomePageConfig) -> HomePageConfigRead:
+        return HomePageConfigRead(
+            live=HomePageSections(
+                carousel_panels=HomePageService._normalize_list(config.live_carousel_panels),
+                recommended_tiles=HomePageService._normalize_list(config.live_recommended_tiles),
+                announcement_banners=HomePageService._normalize_list(config.live_announcement_banners),
+            ),
+            staged=HomePageSections(
+                carousel_panels=HomePageService._normalize_list(config.staged_carousel_panels),
+                recommended_tiles=HomePageService._normalize_list(config.staged_recommended_tiles),
+                announcement_banners=HomePageService._normalize_list(config.staged_announcement_banners),
+            ),
+            preview_enabled=config.preview_enabled,
+            rollout_enabled=config.rollout_enabled,
+            rollout_percentage=config.rollout_percentage,
+            full_enablement=config.full_enablement,
+        )
+
+    @staticmethod
+    def _sanitize_sections(sections: HomePageSections) -> HomePageSections:
+        return HomePageSections(
+            carousel_panels=HomePageService._sanitize_list(sections.carousel_panels),
+            recommended_tiles=HomePageService._sanitize_list(sections.recommended_tiles),
+            announcement_banners=HomePageService._sanitize_list(sections.announcement_banners),
+        )
+
+    @staticmethod
+    def _sanitize_list(value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        normalized = HomePageService._normalize_list(value)
+        return [
+            HomePageService._sanitize_object(item, depth=0)
+            for item in normalized
+        ]
+
+    @staticmethod
+    def _normalize_list(value: Any) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Homepage section payload must be a JSON array",
+            )
+        return value
+
+    @staticmethod
+    def _sanitize_object(item: Any, depth: int) -> dict[str, Any]:
+        if depth > 5:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Homepage JSON nesting is too deep",
+            )
+        if not isinstance(item, dict):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Each homepage section entry must be a JSON object",
+            )
+
+        sanitized: dict[str, Any] = {}
+        for key, value in item.items():
+            if not isinstance(key, str):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Homepage JSON keys must be strings",
+                )
+            if len(key) > 100:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Homepage JSON key length exceeds 100 characters",
+                )
+            sanitized[key] = HomePageService._sanitize_value(value, depth + 1)
+        return sanitized
+
+    @staticmethod
+    def _sanitize_value(value: Any, depth: int) -> Any:
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+
+        if isinstance(value, list):
+            return [HomePageService._sanitize_value(item, depth + 1) for item in value]
+
+        if isinstance(value, dict):
+            return HomePageService._sanitize_object(value, depth + 1)
+
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Homepage payload contains unsupported JSON value types",
         )
 
     @staticmethod

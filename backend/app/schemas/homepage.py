@@ -1,12 +1,24 @@
-﻿from typing import Any
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class HomePageSections(BaseModel):
     carousel_panels: list[dict[str, Any]] = Field(default_factory=list)
     recommended_tiles: list[dict[str, Any]] = Field(default_factory=list)
     announcement_banners: list[dict[str, Any]] = Field(default_factory=list)
+
+    @field_validator("carousel_panels", "recommended_tiles", "announcement_banners")
+    @classmethod
+    def validate_sections(cls, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if len(value) > 100:
+            raise ValueError("Each homepage section supports at most 100 items")
+        for item in value:
+            if not isinstance(item, dict):
+                raise ValueError("Each section entry must be a JSON object")
+            if len(item) > 50:
+                raise ValueError("Each section entry supports at most 50 fields")
+        return value
 
 
 class HomePageConfigRead(BaseModel):

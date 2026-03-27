@@ -33,3 +33,21 @@ def test_create_listing_trims_fields_and_sets_status(db_session, create_user):
     assert listing.title == "Apartment 4B"
     assert listing.description == "Recently renovated two-bedroom unit."
     assert listing.status == ListingStatus.draft
+
+
+def test_create_listing_uses_provided_owner_id_for_ownership(db_session, create_user):
+    owner = create_user("listing_owner", "owner-pass-123", UserRole.manager)
+    other_user = create_user("listing_other", "other-pass-123", UserRole.manager)
+
+    listing = ListingService.create_listing(
+        db=db_session,
+        owner_user_id=owner.id,
+        title="Owner Scoped Listing",
+        description="Listing should remain tied to the owner id passed in service call.",
+        price_amount=Decimal("500.00"),
+        listing_status=ListingStatus.draft,
+        files=[],
+    )
+
+    assert listing.owner_user_id == owner.id
+    assert listing.owner_user_id != other_user.id
