@@ -17,11 +17,11 @@ UNIT_STATUS=0
 API_STATUS=0
 
 echo "Running unit tests..."
-PYTHONPATH="$ROOT_DIR/backend" "$PYTHON_BIN" -m pytest unit_tests -q || UNIT_STATUS=$?
+PYTHONPATH="$ROOT_DIR/repo/backend" "$PYTHON_BIN" -m pytest unit_tests -q || UNIT_STATUS=$?
 
 echo
 echo "Running API tests..."
-PYTHONPATH="$ROOT_DIR/backend" "$PYTHON_BIN" -m pytest API_tests -q || API_STATUS=$?
+PYTHONPATH="$ROOT_DIR/repo/backend" "$PYTHON_BIN" -m pytest API_tests -q || API_STATUS=$?
 
 echo
 echo "========== TEST SUMMARY =========="
