@@ -1,0 +1,10 @@
+{
+  "prompt": "Implement a HarborView Property Operations Portal for HOA and multifamily teams to manage resident billing, community listings, and service orders in a single offline-capable site. The Vue.js front end runs as a responsive web app with an optional installable offline mode so property staff can work from a leasing office desktop while residents can use tablets or shared kiosk devices on the building network. Users sign in with a local username and password, then see role-based navigation for Administrator (system setup), Property Manager (operations), Accounting Clerk (billing and reconciliation), Maintenance/Dispatcher (order fulfillment), and Resident (self-service). Residents can maintain a shipping/mailing address, view and download statements, submit payment evidence as a scanned image (for check or money order), request refunds as credits, and track service orders through clear status badges and timestamped milestones. Property staff can create and manage marketplace-style listings (e.g., “garage sale item,” “parking spot sublet,” “amenity booking add-on”) with draft saving, edit and publish/unpublish controls, bulk status changes, and embedded media uploads with immediate validation feedback; images are limited to JPG/PNG up to 10 MB each, videos to MP4 up to 200 MB, and the UI flags unsupported formats before saving. The homepage and site content are configurable by admins using modular sections such as carousel panels, recommended tiles, and announcement banners, with preview mode and a controlled rollout toggle so a new configuration can be shown to 10% of staff accounts first before full enablement.",
+  "frontend_language": "javascript",
+  "backend_language": "python",
+  "frontend_framework": "vue",
+  "backend_framework": "fastapi",
+  "database": "postgresql"
+}
+
+
