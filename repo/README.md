@@ -1,75 +1,73 @@
-﻿# HarborView Property Operations Portal
+# HarborView Property Operations Portal
 
-Production-ready scaffold for a full-stack, offline-capable property operations platform.
+HarborView is a full-stack property operations portal with a Vue frontend and FastAPI backend.
 
-## Stack
+## Tech Stack
 - Frontend: Vue 3 + Vite
-- Backend: FastAPI (Python 3.10)
+- Backend: FastAPI + SQLAlchemy
 - Database: PostgreSQL
 - Orchestration: Docker Compose
 
-## Run with Docker
+## Run The Platform
+From this `repo/` directory:
+
 ```bash
 docker compose up --build
 ```
 
-Frontend: `http://localhost:5173`  
-Backend: `http://localhost:8000`  
-API Health: `http://localhost:8000/api/v1/health/`
+## Service URLs
+- Frontend: `http://localhost:5173`
+- Backend root: `http://localhost:8000/`
+- API base: `http://localhost:8000/api/v1`
+- Health check: `http://localhost:8000/api/v1/health/`
+- PostgreSQL: `localhost:5432` (`harborview` / `harborview`)
 
-## Optional Offline Install Mode (Frontend)
-Set `VITE_ENABLE_OFFLINE_MODE=true` when building/running the frontend to enable:
-- Installable app experience (desktop/tablet/kiosk)
-- Offline shell support via service worker
-- Cached fallback for previously loaded GET API responses
+## Optional Offline Mode (Frontend)
+Set `VITE_ENABLE_OFFLINE_MODE=true` to enable installable PWA behavior.
 
-Example:
-```bash
-cd frontend
-VITE_ENABLE_OFFLINE_MODE=true npm run build
-```
+PowerShell:
 
-PowerShell example:
 ```powershell
 cd frontend
 $env:VITE_ENABLE_OFFLINE_MODE = "true"
 npm run build
 ```
 
-## Project Structure
-- `frontend/` Vue app skeleton with router, pages, and reusable components
-- `backend/` FastAPI app skeleton with modular `routers/`, `models/`, `services/`, `schemas/`, and `db/`
-- `docker-compose.yml` local orchestration for frontend, backend, and PostgreSQL
+Bash:
 
-Business logic is intentionally not implemented yet.
+```bash
+cd frontend
+VITE_ENABLE_OFFLINE_MODE=true npm run build
+```
 
-## Test Runner
-Run all backend unit and API tests with one command:
+## Test Instructions
+From the workspace root (`harborview-property-operations-portal/`):
 
 ```bash
 bash run_tests.sh
 ```
 
-Test suites:
-- `unit_tests/` for service logic
-- `API_tests/` for auth, listings, and orders API flows
-
-## Backend Dev Setup (Hashing Dependencies)
-Install backend dependencies with compatible password-hashing packages:
+Direct pytest alternative:
 
 ```bash
-cd backend
+python -m pytest unit_tests/ API_tests/ -v
+```
+
+Extra module-scoped tests under `repo/backend/`:
+
+```bash
+python -m pytest repo/backend/unit_tests repo/backend/API_tests -v
+```
+
+## Backend Dependency Setup
+From `repo/backend`:
+
+```bash
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-This installs:
+Password hashing compatibility stack:
 - `passlib[argon2,bcrypt]==1.7.4`
 - `argon2-cffi==23.1.0`
 - `bcrypt==3.2.0`
-
-If you're only running tests on Python 3.14 and hit `psycopg2-binary` build issues, install the hashing stack directly:
-
-```bash
-python -m pip install passlib[argon2,bcrypt]==1.7.4 argon2-cffi==23.1.0 bcrypt==3.2.0
-```
