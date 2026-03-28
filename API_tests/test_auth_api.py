@@ -78,3 +78,8 @@ def test_auth_me_returns_only_authenticated_user_data(client):
     assert payload["mailing_address"] == "Alice Mailing"
     assert payload["username"] != "me_bob"
     assert payload["shipping_address"] != "Bob Shipping"
+
+
+def test_protected_route_without_token_returns_401(client):
+    response = client.get("/api/v1/protected/me")
+    assert response.status_code == 401

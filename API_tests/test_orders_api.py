@@ -124,3 +124,42 @@ def test_resident_to_manager_chained_order_flow(client):
     resident_fetch = client.get(f"/api/v1/orders/{order_id}", headers=resident_headers)
     assert resident_fetch.status_code == 200
     assert resident_fetch.json()["resident_user_id"] == resident_id
+
+
+def test_resident_cannot_fetch_another_residents_order(client):
+    _, resident_a_headers = _register_and_login(
+        client,
+        username="orders_resident_a",
+        password="resident-pass-123",
+        role="resident",
+    )
+    _, resident_b_headers = _register_and_login(
+        client,
+        username="orders_resident_b",
+        password="resident-pass-123",
+        role="resident",
+    )
+
+    create_response = client.post(
+        "/api/v1/orders",
+        json={"title": "B order", "description": "Owned by resident B."},
+        headers=resident_b_headers,
+    )
+    assert create_response.status_code == 201
+    order_id = create_response.json()["id"]
+
+    fetch_response = client.get(f"/api/v1/orders/{order_id}", headers=resident_a_headers)
+    assert fetch_response.status_code == 403
+    assert "not allowed" in fetch_response.json()["detail"].lower()
+
+
+def test_get_nonexistent_service_order_returns_404(client):
+    _, resident_headers = _register_and_login(
+        client,
+        username="orders_resident_404",
+        password="resident-pass-123",
+        role="resident",
+    )
+
+    response = client.get("/api/v1/orders/999999", headers=resident_headers)
+    assert response.status_code == 404
