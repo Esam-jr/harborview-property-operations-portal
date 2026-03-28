@@ -1,10 +1,41 @@
-def _register_and_login(client, username: str, password: str, role: str):
-    register_response = client.post(
-        "/api/v1/auth/register",
-        json={"username": username, "password": password, "role": role},
-    )
-    assert register_response.status_code == 201
-    user_id = register_response.json()["id"]
+from app.models.enums import UserRole
+from app.services.user_service import UserService
+
+
+def _register_and_login(client, db_session, username: str, password: str, role: str):
+    if role == UserRole.resident.value:
+        register_response = client.post(
+            "/api/v1/auth/register",
+            json={"username": username, "password": password, "role": role},
+        )
+        assert register_response.status_code == 201
+        user_id = register_response.json()["id"]
+    else:
+        admin_username = "orders_seed_admin"
+        admin_password = "orders-seed-admin-pass-123"
+        existing_admin = UserService.get_by_username(db_session, admin_username)
+        if existing_admin is None:
+            UserService.create_user(
+                db_session,
+                username=admin_username,
+                password=admin_password,
+                role=UserRole.admin,
+            )
+
+        admin_login = client.post(
+            "/api/v1/auth/login",
+            json={"username": admin_username, "password": admin_password},
+        )
+        assert admin_login.status_code == 200
+        admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
+
+        provision_response = client.post(
+            "/api/v1/auth/staff",
+            json={"username": username, "password": password, "role": role},
+            headers=admin_headers,
+        )
+        assert provision_response.status_code == 201
+        user_id = provision_response.json()["id"]
 
     login_response = client.post(
         "/api/v1/auth/login",
@@ -16,21 +47,24 @@ def _register_and_login(client, username: str, password: str, role: str):
     return user_id, headers
 
 
-def test_resident_can_create_order_and_manager_can_update_status(client):
+def test_resident_can_create_order_and_manager_can_update_status(client, db_session):
     _, resident_headers = _register_and_login(
         client,
+        db_session,
         username="api_orders_resident",
         password="resident-pass-123",
         role="resident",
     )
     _, manager_headers = _register_and_login(
         client,
+        db_session,
         username="api_orders_manager",
         password="manager-pass-123",
         role="manager",
     )
     dispatcher_id, _ = _register_and_login(
         client,
+        db_session,
         username="api_orders_dispatcher",
         password="dispatcher-pass-123",
         role="dispatcher",
@@ -55,9 +89,10 @@ def test_resident_can_create_order_and_manager_can_update_status(client):
     assert updated_order["assigned_to_user_id"] == dispatcher_id
 
 
-def test_non_resident_cannot_create_order(client):
+def test_non_resident_cannot_create_order(client, db_session):
     _, manager_headers = _register_and_login(
         client,
+        db_session,
         username="api_orders_manager_blocked",
         password="manager-pass-123",
         role="manager",
@@ -72,21 +107,24 @@ def test_non_resident_cannot_create_order(client):
     assert create_response.json()["detail"] == "Only residents can create service orders"
 
 
-def test_resident_to_manager_chained_order_flow(client):
+def test_resident_to_manager_chained_order_flow(client, db_session):
     resident_id, resident_headers = _register_and_login(
         client,
+        db_session,
         username="chain_resident",
         password="resident-pass-123",
         role="resident",
     )
     _, manager_headers = _register_and_login(
         client,
+        db_session,
         username="chain_manager",
         password="manager-pass-123",
         role="manager",
     )
     dispatcher_id, _ = _register_and_login(
         client,
+        db_session,
         username="chain_dispatcher",
         password="dispatcher-pass-123",
         role="dispatcher",
@@ -126,15 +164,17 @@ def test_resident_to_manager_chained_order_flow(client):
     assert resident_fetch.json()["resident_user_id"] == resident_id
 
 
-def test_resident_cannot_fetch_another_residents_order(client):
+def test_resident_cannot_fetch_another_residents_order(client, db_session):
     _, resident_a_headers = _register_and_login(
         client,
+        db_session,
         username="orders_resident_a",
         password="resident-pass-123",
         role="resident",
     )
     _, resident_b_headers = _register_and_login(
         client,
+        db_session,
         username="orders_resident_b",
         password="resident-pass-123",
         role="resident",
@@ -153,9 +193,10 @@ def test_resident_cannot_fetch_another_residents_order(client):
     assert "not allowed" in fetch_response.json()["detail"].lower()
 
 
-def test_get_nonexistent_service_order_returns_404(client):
+def test_get_nonexistent_service_order_returns_404(client, db_session):
     _, resident_headers = _register_and_login(
         client,
+        db_session,
         username="orders_resident_404",
         password="resident-pass-123",
         role="resident",

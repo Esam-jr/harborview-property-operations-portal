@@ -15,7 +15,10 @@ if str(BACKEND_DIR) not in sys.path:
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.billing_record import BillingRecord
 from app.models.enums import UserRole
+from app.models.homepage_config import HomePageConfig
+from app.models.payment_evidence import PaymentEvidence
 from app.models.property_listing import PropertyListing
 from app.models.property_listing_media import PropertyListingMedia
 from app.models.service_order import ServiceOrder
@@ -29,6 +32,9 @@ TEST_TABLES = [
     PropertyListingMedia.__table__,
     ServiceOrder.__table__,
     ServiceOrderStatusHistory.__table__,
+    BillingRecord.__table__,
+    PaymentEvidence.__table__,
+    HomePageConfig.__table__,
 ]
 
 
@@ -106,10 +112,41 @@ def login_user(client):
 
 
 @pytest.fixture()
-def auth_headers(register_user, login_user):
+def auth_headers(register_user, login_user, client, db_session):
+    def _ensure_admin_and_get_headers() -> dict[str, str]:
+        admin_username = "seed_admin"
+        admin_password = "seed-admin-pass-123"
+
+        existing_admin = UserService.get_by_username(db_session, admin_username)
+        if existing_admin is None:
+            UserService.create_user(
+                db_session,
+                username=admin_username,
+                password=admin_password,
+                role=UserRole.admin,
+            )
+
+        admin_login_response = login_user(admin_username, admin_password)
+        assert admin_login_response.status_code == 200
+        admin_token = admin_login_response.json()["access_token"]
+        return {"Authorization": f"Bearer {admin_token}"}
+
     def _auth_headers(username: str, password: str, role: str):
-        register_response = register_user(username, password, role)
-        assert register_response.status_code == 201
+        if role == UserRole.resident.value:
+            register_response = register_user(username, password, role)
+            assert register_response.status_code == 201
+        else:
+            admin_headers = _ensure_admin_and_get_headers()
+            staff_response = client.post(
+                "/api/v1/auth/staff",
+                json={
+                    "username": username,
+                    "password": password,
+                    "role": role,
+                },
+                headers=admin_headers,
+            )
+            assert staff_response.status_code == 201
 
         login_response = login_user(username, password)
         assert login_response.status_code == 200

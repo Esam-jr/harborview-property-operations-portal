@@ -42,16 +42,15 @@ def test_manager_can_update_homepage_configuration(db_session, create_user):
     manager_user = create_user("homepage_manager", "manager-pass-123", UserRole.manager)
     payload = _sample_config_update()
 
-    updated = HomePageService.update_admin_config(
-        db=db_session,
-        current_user=manager_user,
-        payload=payload,
-    )
+    with pytest.raises(HTTPException) as exc_info:
+        HomePageService.update_admin_config(
+            db=db_session,
+            current_user=manager_user,
+            payload=payload,
+        )
 
-    assert updated.preview_enabled is True
-    assert updated.rollout_enabled is True
-    assert updated.rollout_percentage == 35
-    assert updated.staged.carousel_panels[0]["title"] == "Seasonal Notice"
+    assert exc_info.value.status_code == 403
+    assert "Only admin role can manage homepage configuration" in str(exc_info.value.detail)
 
 
 def test_resident_cannot_overwrite_homepage_configuration(db_session, create_user):

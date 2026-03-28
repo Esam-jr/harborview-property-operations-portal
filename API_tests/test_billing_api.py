@@ -7,13 +7,40 @@ from app.models.enums import BillingStatus, UserRole
 from app.services.user_service import UserService
 
 
-def _register_and_login(client, username: str, password: str, role: str):
-    register_response = client.post(
-        "/api/v1/auth/register",
-        json={"username": username, "password": password, "role": role},
-    )
-    assert register_response.status_code == 201
-    user_id = register_response.json()["id"]
+def _register_and_login(client, db_session, username: str, password: str, role: str):
+    if role == UserRole.resident.value:
+        register_response = client.post(
+            "/api/v1/auth/register",
+            json={"username": username, "password": password, "role": role},
+        )
+        assert register_response.status_code == 201
+        user_id = register_response.json()["id"]
+    else:
+        admin_username = "billing_seed_admin"
+        admin_password = "billing-seed-admin-pass-123"
+        existing_admin = UserService.get_by_username(db_session, admin_username)
+        if existing_admin is None:
+            UserService.create_user(
+                db_session,
+                username=admin_username,
+                password=admin_password,
+                role=UserRole.admin,
+            )
+
+        admin_login = client.post(
+            "/api/v1/auth/login",
+            json={"username": admin_username, "password": admin_password},
+        )
+        assert admin_login.status_code == 200
+        admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
+
+        provision_response = client.post(
+            "/api/v1/auth/staff",
+            json={"username": username, "password": password, "role": role},
+            headers=admin_headers,
+        )
+        assert provision_response.status_code == 201
+        user_id = provision_response.json()["id"]
 
     login_response = client.post(
         "/api/v1/auth/login",
@@ -25,15 +52,17 @@ def _register_and_login(client, username: str, password: str, role: str):
 
 
 @pytest.mark.parametrize("staff_role", ["admin", "manager"])
-def test_staff_can_create_billing_record_happy_path(client, staff_role):
+def test_staff_can_create_billing_record_happy_path(client, db_session, staff_role):
     resident_id, _ = _register_and_login(
         client,
+        db_session,
         username=f"billing_resident_{staff_role}",
         password="resident-pass-123",
         role="resident",
     )
     _, staff_headers = _register_and_login(
         client,
+        db_session,
         username=f"billing_staff_{staff_role}",
         password="staff-pass-123",
         role=staff_role,
@@ -58,15 +87,17 @@ def test_staff_can_create_billing_record_happy_path(client, staff_role):
     assert payload["reference_code"].startswith("BILL-")
 
 
-def test_resident_can_upload_payment_proof_for_own_billing_record(client):
+def test_resident_can_upload_payment_proof_for_own_billing_record(client, db_session):
     resident_id, resident_headers = _register_and_login(
         client,
+        db_session,
         username="billing_resident_proof",
         password="resident-pass-123",
         role="resident",
     )
     _, admin_headers = _register_and_login(
         client,
+        db_session,
         username="billing_admin_proof",
         password="admin-pass-123",
         role="admin",
@@ -112,21 +143,24 @@ def test_resident_can_upload_payment_proof_for_own_billing_record(client):
     assert records[0]["status"] == "paid"
 
 
-def test_resident_cannot_download_statement_for_other_resident_record(client):
+def test_resident_cannot_download_statement_for_other_resident_record(client, db_session):
     resident_a_id, resident_a_headers = _register_and_login(
         client,
+        db_session,
         username="billing_resident_a",
         password="resident-pass-123",
         role="resident",
     )
     resident_b_id, _ = _register_and_login(
         client,
+        db_session,
         username="billing_resident_b",
         password="resident-pass-123",
         role="resident",
     )
     _, manager_headers = _register_and_login(
         client,
+        db_session,
         username="billing_manager_access",
         password="manager-pass-123",
         role="manager",

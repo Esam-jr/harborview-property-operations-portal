@@ -1,6 +1,6 @@
 ﻿from typing import Any
 
-from sqlalchemy import Boolean, Integer
+from sqlalchemy import JSON, Boolean, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,13 +13,15 @@ class HomePageConfig(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
 
-    live_carousel_panels: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    live_recommended_tiles: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    live_announcement_banners: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
+    json_type = JSON().with_variant(JSONB, "postgresql")
 
-    staged_carousel_panels: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    staged_recommended_tiles: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    staged_announcement_banners: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
+    live_carousel_panels: Mapped[list[dict[str, Any]]] = mapped_column(json_type, default=list, nullable=False)
+    live_recommended_tiles: Mapped[list[dict[str, Any]]] = mapped_column(json_type, default=list, nullable=False)
+    live_announcement_banners: Mapped[list[dict[str, Any]]] = mapped_column(json_type, default=list, nullable=False)
+
+    staged_carousel_panels: Mapped[list[dict[str, Any]]] = mapped_column(json_type, default=list, nullable=False)
+    staged_recommended_tiles: Mapped[list[dict[str, Any]]] = mapped_column(json_type, default=list, nullable=False)
+    staged_announcement_banners: Mapped[list[dict[str, Any]]] = mapped_column(json_type, default=list, nullable=False)
 
     preview_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rollout_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
