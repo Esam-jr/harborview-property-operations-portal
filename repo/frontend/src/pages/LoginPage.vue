@@ -12,7 +12,9 @@
         <input v-model="form.password" type="password" minlength="8" required />
       </label>
 
-      <button :disabled="loading">{{ loading ? "Signing in..." : "Login" }}</button>
+      <button :class="{ 'is-loading': loading }" :disabled="loading">
+        {{ loading ? "Signing in..." : "Login" }}
+      </button>
     </form>
     <p v-if="error" class="error-text">{{ error }}</p>
   </section>

@@ -28,22 +28,22 @@ const showHeader = computed(() => route.name !== "login");
 
 .app-content {
   flex: 1;
-  padding: 1rem 0 1.25rem;
+  padding: 1.25rem 0 1.5rem;
 }
 
 .content-container {
-  width: min(100%, 1120px);
+  width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 0 0.85rem;
+  padding: 0 1rem;
 }
 
 @media (min-width: 768px) {
   .app-content {
-    padding: 1.25rem 0 1.5rem;
+    padding: 1.5rem 0 1.75rem;
   }
 
   .content-container {
-    padding: 0 1rem;
+    padding: 0 1.25rem;
   }
 }
 </style>

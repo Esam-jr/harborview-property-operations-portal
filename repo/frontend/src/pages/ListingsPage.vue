@@ -37,7 +37,7 @@
 
           <p v-if="createFileError" class="error-text">{{ createFileError }}</p>
 
-          <button type="submit" :disabled="saving || Boolean(createFileError)">
+          <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving || Boolean(createFileError)">
             {{ saving ? "Saving..." : "Create" }}
           </button>
         </form>
@@ -46,7 +46,9 @@
       <div class="card">
         <div class="list-head">
           <h3>All Listings</h3>
-          <button type="button" @click="loadListings">Refresh</button>
+          <button type="button" :class="{ 'is-loading': loadingListings }" :disabled="loadingListings" @click="loadListings">
+            {{ loadingListings ? "Refreshing..." : "Refresh" }}
+          </button>
         </div>
         <p v-if="error" class="error-text">{{ error }}</p>
 
@@ -70,7 +72,7 @@
                 <td>{{ item.status }}</td>
                 <td>{{ item.owner_user_id }}</td>
                 <td>
-                  <button type="button" @click="openEdit(item)">Edit</button>
+                  <button type="button" :disabled="saving || loadingListings" @click="openEdit(item)">Edit</button>
                 </td>
               </tr>
             </tbody>
@@ -84,7 +86,9 @@
             <option value="published">published</option>
             <option value="unpublished">unpublished</option>
           </select>
-          <button type="button" @click="applyBulk">Bulk Update</button>
+          <button type="button" :class="{ 'is-loading': saving }" :disabled="saving || loadingListings" @click="applyBulk">
+            {{ saving ? "Updating..." : "Bulk Update" }}
+          </button>
         </div>
       </div>
 
@@ -120,10 +124,10 @@
           <p v-if="editFileError" class="error-text">{{ editFileError }}</p>
 
           <div class="inline-group">
-            <button type="submit" :disabled="saving || Boolean(editFileError)">
+            <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving || Boolean(editFileError)">
               {{ saving ? "Updating..." : "Update" }}
             </button>
-            <button type="button" @click="cancelEdit">Cancel</button>
+            <button type="button" :disabled="saving" @click="cancelEdit">Cancel</button>
           </div>
         </form>
       </div>
@@ -150,6 +154,7 @@ const listings = ref([]);
 const selectedIds = ref([]);
 const bulkStatus = ref("published");
 const saving = ref(false);
+const loadingListings = ref(false);
 const error = ref("");
 
 const createFiles = ref([]);
@@ -246,11 +251,14 @@ function toFormData(form, files) {
 async function loadListings() {
   if (!canManageListings.value) return;
 
+  loadingListings.value = true;
   try {
     error.value = "";
     listings.value = await getListings();
   } catch (err) {
     error.value = err?.response?.data?.detail || "Failed to load listings";
+  } finally {
+    loadingListings.value = false;
   }
 }
 

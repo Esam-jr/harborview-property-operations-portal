@@ -74,8 +74,12 @@
         </label>
 
         <div class="inline-group">
-          <button type="submit" :disabled="saving">{{ saving ? "Saving..." : "Save Config" }}</button>
-          <button type="button" @click="reloadConfig">Reload</button>
+          <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving">
+            {{ saving ? "Saving..." : "Save Config" }}
+          </button>
+          <button type="button" :class="{ 'is-loading': configLoading }" :disabled="configLoading" @click="reloadConfig">
+            {{ configLoading ? "Reloading..." : "Reload" }}
+          </button>
         </div>
       </form>
       <p v-if="adminError" class="error-text">{{ adminError }}</p>
@@ -104,6 +108,7 @@ const source = ref("live");
 const error = ref("");
 const adminError = ref("");
 const saving = ref(false);
+const configLoading = ref(false);
 
 const stagedCarouselJson = ref("[]");
 const stagedTilesJson = ref("[]");
@@ -160,12 +165,15 @@ function hydrateAdminForm(config) {
 async function reloadConfig() {
   if (!isAdmin.value) return;
 
+  configLoading.value = true;
   try {
     adminError.value = "";
     const config = await getHomePageConfig();
     hydrateAdminForm(config);
   } catch (err) {
     adminError.value = err?.response?.data?.detail || "Failed to load homepage config";
+  } finally {
+    configLoading.value = false;
   }
 }
 

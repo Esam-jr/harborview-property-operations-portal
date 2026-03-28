@@ -13,18 +13,14 @@
     <nav :class="{ 'is-open': menuOpen }">
       <router-link to="/home" @click="menuOpen = false">Home</router-link>
       <router-link to="/dashboard" @click="menuOpen = false">Dashboard</router-link>
-      <router-link
-        v-if="auth.state.role === 'resident'"
-        to="/resident-dashboard"
-        @click="menuOpen = false"
-      >
+      <router-link v-if="canAccessResidentDashboard" to="/resident-dashboard" @click="menuOpen = false">
         Resident Dashboard
       </router-link>
-      <router-link v-if="auth.state.role === 'manager'" to="/listings" @click="menuOpen = false">
+      <router-link v-if="canAccessListings" to="/listings" @click="menuOpen = false">
         Listings
       </router-link>
-      <router-link to="/service-orders" @click="menuOpen = false">Service Orders</router-link>
-      <router-link to="/billing" @click="menuOpen = false">Billing</router-link>
+      <router-link v-if="canAccessOrders" to="/service-orders" @click="menuOpen = false">Service Orders</router-link>
+      <router-link v-if="canAccessBilling" to="/billing" @click="menuOpen = false">Billing</router-link>
 
       <div v-if="pwaState.enabled" class="install-action">
         <span class="install-pill">{{ pwaState.online ? "Online" : "Offline" }}</span>
@@ -32,9 +28,11 @@
           v-if="pwaState.installable"
           type="button"
           class="install-button"
+          :class="{ 'is-loading': installLoading }"
+          :disabled="installLoading"
           @click="handleInstall"
         >
-          Install App
+          {{ installLoading ? "Installing..." : "Install App" }}
         </button>
       </div>
 
@@ -44,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { useAuthStore } from "../stores/auth";
@@ -53,9 +51,24 @@ import { installOfflineApp, pwaState } from "../services/pwaService";
 const router = useRouter();
 const auth = useAuthStore();
 const menuOpen = ref(false);
+const installLoading = ref(false);
+
+const canAccessResidentDashboard = computed(() => auth.state.role === "resident");
+const canAccessListings = computed(() => auth.state.role === "manager");
+const canAccessOrders = computed(() =>
+  ["admin", "manager", "dispatcher", "resident"].includes(auth.state.role),
+);
+const canAccessBilling = computed(() =>
+  ["admin", "manager", "clerk", "resident"].includes(auth.state.role),
+);
 
 async function handleInstall() {
-  await installOfflineApp();
+  installLoading.value = true;
+  try {
+    await installOfflineApp();
+  } finally {
+    installLoading.value = false;
+  }
 }
 
 function logout() {
@@ -67,11 +80,12 @@ function logout() {
 
 <style scoped>
 .header {
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
   background: #0f172a;
-  color: #e2e8f0;
+  color: #eaf2ff;
   display: grid;
-  gap: 0.7rem;
+  gap: 0.8rem;
+  border-bottom: 1px solid #22344b;
 }
 
 .brand-row {
@@ -83,7 +97,8 @@ function logout() {
 
 .brand-row h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.08rem;
+  letter-spacing: 0.01em;
 }
 
 .brand-actions {
@@ -94,21 +109,22 @@ function logout() {
 
 .menu-btn {
   display: inline-flex;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #e2e8f0;
+  border: 1px solid #3a516d;
+  background: #1f334a;
+  color: #eaf2ff;
 }
 
 .user-chip {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #334155;
-  border-radius: 6px;
+  padding: 0.28rem 0.56rem;
+  border: 1px solid #3a516d;
+  border-radius: 8px;
   font-size: 0.85rem;
+  background: #1b2d42;
 }
 
 nav {
   display: none;
-  gap: 0.9rem;
+  gap: 0.8rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -120,16 +136,21 @@ nav.is-open {
 a,
 .link-btn {
   text-decoration: none;
-  color: #e2e8f0;
+  color: #eaf2ff;
   background: none;
   border: none;
-  padding: 0;
+  padding: 0.15rem 0.2rem;
   cursor: pointer;
   font: inherit;
 }
 
 a.router-link-active {
-  color: #38bdf8;
+  color: #84d1ff;
+}
+
+a:hover,
+.link-btn:hover {
+  color: #b6e3ff;
 }
 
 @media (min-width: 900px) {

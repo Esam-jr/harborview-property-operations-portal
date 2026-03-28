@@ -18,7 +18,7 @@
             Mailing Address
             <textarea v-model="addressForm.mailing_address" rows="3"></textarea>
           </label>
-          <button type="submit" :disabled="savingAddress">
+          <button type="submit" :class="{ 'is-loading': savingAddress }" :disabled="savingAddress">
             {{ savingAddress ? "Saving..." : "Save Addresses" }}
           </button>
         </form>
@@ -27,7 +27,9 @@
       <div class="card">
         <div class="list-head">
           <h3>Billing Statements</h3>
-          <button type="button" @click="loadBilling">Refresh</button>
+          <button type="button" :class="{ 'is-loading': loadingBilling }" :disabled="loadingBilling" @click="loadBilling">
+            {{ loadingBilling ? "Refreshing..." : "Refresh" }}
+          </button>
         </div>
 
         <div class="table-wrap" v-if="billingRecords.length">
@@ -51,10 +53,10 @@
                 </td>
                 <td>
                   <div class="inline-group">
-                    <button type="button" @click="viewStatement(record.id)">View</button>
-                    <button type="button" @click="downloadStatementPdf(record.id)">Download PDF</button>
-                    <button type="button" @click="openProof(record.id)">Upload Proof</button>
-                    <button type="button" @click="openRefund(record.id)">Request Refund</button>
+                    <button type="button" :disabled="savingProof || savingRefund" @click="viewStatement(record.id)">View</button>
+                    <button type="button" :disabled="savingProof || savingRefund" @click="downloadStatementPdf(record.id)">Download PDF</button>
+                    <button type="button" :disabled="savingProof || savingRefund" @click="openProof(record.id)">Upload Proof</button>
+                    <button type="button" :disabled="savingProof || savingRefund" @click="openRefund(record.id)">Request Refund</button>
                   </div>
                 </td>
               </tr>
@@ -91,8 +93,10 @@
             <input type="file" accept="image/jpeg,image/png" @change="onProofFileChange" required />
           </label>
           <div class="inline-group">
-            <button type="submit" :disabled="savingProof">{{ savingProof ? "Uploading..." : "Submit Proof" }}</button>
-            <button type="button" @click="closeProof">Cancel</button>
+            <button type="submit" :class="{ 'is-loading': savingProof }" :disabled="savingProof">
+              {{ savingProof ? "Uploading..." : "Submit Proof" }}
+            </button>
+            <button type="button" :disabled="savingProof" @click="closeProof">Cancel</button>
           </div>
         </form>
       </div>
@@ -109,10 +113,10 @@
             <textarea v-model="refundForm.reason" minlength="3" required></textarea>
           </label>
           <div class="inline-group">
-            <button type="submit" :disabled="savingRefund">
+            <button type="submit" :class="{ 'is-loading': savingRefund }" :disabled="savingRefund">
               {{ savingRefund ? "Submitting..." : "Request Refund" }}
             </button>
-            <button type="button" @click="closeRefund">Cancel</button>
+            <button type="button" :disabled="savingRefund" @click="closeRefund">Cancel</button>
           </div>
         </form>
       </div>
@@ -120,7 +124,9 @@
       <div class="card">
         <div class="list-head">
           <h3>Service Orders</h3>
-          <button type="button" @click="loadOrders">Refresh</button>
+          <button type="button" :class="{ 'is-loading': loadingOrders }" :disabled="loadingOrders" @click="loadOrders">
+            {{ loadingOrders ? "Refreshing..." : "Refresh" }}
+          </button>
         </div>
 
         <div class="table-wrap" v-if="orders.length">
@@ -200,6 +206,7 @@ const addressForm = reactive({
 const savingAddress = ref(false);
 
 const billingRecords = ref([]);
+const loadingBilling = ref(false);
 const proofTargetId = ref(null);
 const savingProof = ref(false);
 const proofFile = ref(null);
@@ -219,6 +226,7 @@ const refundForm = reactive({
 
 const selectedStatement = ref(null);
 const orders = ref([]);
+const loadingOrders = ref(false);
 
 function formatDate(isoDate) {
   return new Date(isoDate).toLocaleString();
@@ -250,10 +258,13 @@ async function saveAddresses() {
 }
 
 async function loadBilling() {
+  loadingBilling.value = true;
   try {
     billingRecords.value = await getBillingRecords();
   } catch (err) {
     error.value = err?.response?.data?.detail || "Failed to load billing records";
+  } finally {
+    loadingBilling.value = false;
   }
 }
 
@@ -380,10 +391,13 @@ async function downloadStatementPdf(billingId) {
 }
 
 async function loadOrders() {
+  loadingOrders.value = true;
   try {
     orders.value = await getOrders();
   } catch (err) {
     error.value = err?.response?.data?.detail || "Failed to load service orders";
+  } finally {
+    loadingOrders.value = false;
   }
 }
 

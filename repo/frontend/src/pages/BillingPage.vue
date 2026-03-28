@@ -21,14 +21,18 @@
           Notes
           <textarea v-model="createForm.notes"></textarea>
         </label>
-        <button type="submit" :disabled="saving">{{ saving ? "Saving..." : "Create Billing" }}</button>
+        <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving">
+          {{ saving ? "Saving..." : "Create Billing" }}
+        </button>
       </form>
     </div>
 
     <div class="card">
       <div class="list-head">
         <h3>Billing Records</h3>
-        <button type="button" @click="loadBilling">Refresh</button>
+        <button type="button" :class="{ 'is-loading': loadingRecords }" :disabled="loadingRecords" @click="loadBilling">
+          {{ loadingRecords ? "Refreshing..." : "Refresh" }}
+        </button>
       </div>
 
       <p v-if="error" class="error-text">{{ error }}</p>
@@ -54,10 +58,10 @@
               <td>{{ record.status }}</td>
               <td>
                 <div class="inline-group">
-                  <button type="button" @click="openProof(record.id)">Upload Proof</button>
-                  <button type="button" @click="openRefund(record.id)">Refund</button>
-                  <button type="button" @click="downloadJson(record.id)">Statement JSON</button>
-                  <button type="button" @click="downloadPdf(record.id)">Statement PDF</button>
+                  <button type="button" :disabled="saving" @click="openProof(record.id)">Upload Proof</button>
+                  <button type="button" :disabled="saving" @click="openRefund(record.id)">Refund</button>
+                  <button type="button" :disabled="saving" @click="downloadJson(record.id)">Statement JSON</button>
+                  <button type="button" :disabled="saving" @click="downloadPdf(record.id)">Statement PDF</button>
                 </div>
               </td>
             </tr>
@@ -94,8 +98,10 @@
           <input type="file" accept="image/jpeg,image/png" @change="onProofFileChange" required />
         </label>
         <div class="inline-group">
-          <button type="submit" :disabled="saving">Upload</button>
-          <button type="button" @click="closeProof">Cancel</button>
+          <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving">
+            {{ saving ? "Uploading..." : "Upload" }}
+          </button>
+          <button type="button" :disabled="saving" @click="closeProof">Cancel</button>
         </div>
       </form>
     </div>
@@ -112,8 +118,10 @@
           <textarea v-model="refundForm.reason" minlength="3" required></textarea>
         </label>
         <div class="inline-group">
-          <button type="submit" :disabled="saving">Request Refund</button>
-          <button type="button" @click="closeRefund">Cancel</button>
+          <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving">
+            {{ saving ? "Submitting..." : "Request Refund" }}
+          </button>
+          <button type="button" :disabled="saving" @click="closeRefund">Cancel</button>
         </div>
       </form>
     </div>
@@ -144,6 +152,7 @@ const canCreateBilling = computed(() => ["admin", "manager", "clerk"].includes(a
 const records = ref([]);
 const error = ref("");
 const saving = ref(false);
+const loadingRecords = ref(false);
 const statementJson = ref("");
 
 const createForm = reactive({
@@ -203,11 +212,14 @@ function onProofFileChange(event) {
 }
 
 async function loadBilling() {
+  loadingRecords.value = true;
   try {
     error.value = "";
     records.value = await getBillingRecords();
   } catch (err) {
     error.value = err?.response?.data?.detail || "Failed to load billing records";
+  } finally {
+    loadingRecords.value = false;
   }
 }
 

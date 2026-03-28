@@ -13,14 +13,18 @@
           Description
           <textarea v-model="createForm.description" required minlength="3"></textarea>
         </label>
-        <button type="submit" :disabled="saving">{{ saving ? "Saving..." : "Create Order" }}</button>
+        <button type="submit" :class="{ 'is-loading': saving }" :disabled="saving">
+          {{ saving ? "Saving..." : "Create Order" }}
+        </button>
       </form>
     </div>
 
     <div class="card">
       <div class="list-head">
         <h3>Orders</h3>
-        <button type="button" @click="loadOrders">Refresh</button>
+        <button type="button" :class="{ 'is-loading': loadingOrders }" :disabled="loadingOrders" @click="loadOrders">
+          {{ loadingOrders ? "Refreshing..." : "Refresh" }}
+        </button>
       </div>
       <p v-if="error" class="error-text">{{ error }}</p>
 
@@ -58,7 +62,9 @@
                     min="1"
                     placeholder="Dispatcher ID"
                   />
-                  <button type="button" @click="updateStatus(item.id)">Apply</button>
+                  <button type="button" :class="{ 'is-loading': saving }" :disabled="saving || loadingOrders" @click="updateStatus(item.id)">
+                    {{ saving ? "Applying..." : "Apply" }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -89,6 +95,7 @@ const createForm = reactive({
 const orders = ref([]);
 const error = ref("");
 const saving = ref(false);
+const loadingOrders = ref(false);
 const statusMap = reactive({});
 const assigneeMap = reactive({});
 
@@ -100,6 +107,7 @@ function hydrateControlValues(items) {
 }
 
 async function loadOrders() {
+  loadingOrders.value = true;
   try {
     error.value = "";
     const data = await getOrders();
@@ -107,6 +115,8 @@ async function loadOrders() {
     hydrateControlValues(data);
   } catch (err) {
     error.value = err?.response?.data?.detail || "Failed to load orders";
+  } finally {
+    loadingOrders.value = false;
   }
 }
 
@@ -125,6 +135,7 @@ async function submitOrder() {
 }
 
 async function updateStatus(orderId) {
+  saving.value = true;
   try {
     const payload = {
       status: statusMap[orderId],
@@ -138,6 +149,8 @@ async function updateStatus(orderId) {
     await loadOrders();
   } catch (err) {
     error.value = err?.response?.data?.detail || "Failed to update order status";
+  } finally {
+    saving.value = false;
   }
 }
 

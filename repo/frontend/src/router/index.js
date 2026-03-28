@@ -48,6 +48,7 @@ const routes = [
     component: BillingPage,
     meta: { roles: ["admin", "manager", "clerk", "resident"] },
   },
+  { path: "/:pathMatch(.*)*", redirect: "/dashboard" },
 ];
 
 const router = createRouter({
